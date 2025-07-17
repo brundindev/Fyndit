@@ -8,11 +8,7 @@
             to="/"
             class="flex items-center space-x-2 hover:scale-105 transition-transform duration-200"
           >
-            <div
-              class="w-8 h-8 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center"
-            >
-              <span class="text-white font-bold text-lg">F</span>
-            </div>
+            <img src="/logo_fyndit.png" alt="Fyndit Logo" class="w-8 h-8 object-contain" />
             <span class="text-xl font-bold text-gray-900">Fyndit</span>
           </router-link>
         </div>

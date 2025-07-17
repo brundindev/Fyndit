@@ -127,6 +127,32 @@ const goBack = () => {
   router.push('/perfil')
 }
 
+const formatCreatedDate = () => {
+  const timestamp = authStore.user?.createdAt
+  if (!timestamp) return 'No disponible'
+
+  try {
+    let date: Date
+
+    // Verificar si tiene método toDate (es un Timestamp de Firebase)
+    if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
+      date = (timestamp as { toDate(): Date }).toDate()
+    } else {
+      // Si es string o Date, convertir directamente
+      date = new Date(timestamp as string | Date)
+    }
+
+    return new Intl.DateTimeFormat('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }).format(date)
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return 'No disponible'
+  }
+}
+
 onMounted(() => {
   if (!authStore.isAuthenticated) {
     router.push('/login')
@@ -305,11 +331,7 @@ onMounted(() => {
                 <p><strong>UID:</strong> {{ authStore.user?.uid }}</p>
                 <p>
                   <strong>Miembro desde:</strong>
-                  {{
-                    authStore.user?.createdAt
-                      ? new Date(authStore.user.createdAt.toDate()).toLocaleDateString('es-ES')
-                      : 'No disponible'
-                  }}
+                  {{ formatCreatedDate() }}
                 </p>
                 <p><strong>Estado:</strong> <span class="text-green-600">Activo</span></p>
               </div>
