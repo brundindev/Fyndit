@@ -1,0 +1,59 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Reglas para usuarios
+    match /users/{userId} {
+      // Los usuarios pueden leer y escribir su propio documento
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Todos pueden leer información básica de usuarios (para perfiles públicos)
+      allow read: if request.auth != null;
+    }
+    
+    // Reglas para productos
+    match /products/{productId} {
+      // LECTURA PÚBLICA: Todos pueden leer productos sin autenticación
+      allow read: if true;
+      // ESCRITURA: Solo usuarios autenticados pueden crear productos
+      allow create: if request.auth != null;
+      // ACTUALIZACIÓN/ELIMINACIÓN: Solo el propietario puede modificar sus productos
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.sellerId;
+    }
+    
+    // Reglas para favoritos
+    match /favorites/{favoriteId} {
+      // Los usuarios solo pueden gestionar sus propios favoritos
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Reglas para chats/mensajes
+    match /chats/{chatId} {
+      // Solo los participantes del chat pueden acceder
+      allow read, write: if request.auth != null && 
+        (request.auth.uid == resource.data.buyerId || 
+         request.auth.uid == resource.data.sellerId);
+      allow create: if request.auth != null && 
+        (request.auth.uid == request.resource.data.buyerId || 
+         request.auth.uid == request.resource.data.sellerId);
+    }
+    
+    match /chats/{chatId}/messages/{messageId} {
+      // Solo los participantes del chat pueden leer/escribir mensajes
+      allow read, write: if request.auth != null && 
+        (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+    }
+    
+    // Reglas para reviews/valoraciones
+    match /reviews/{reviewId} {
+      // LECTURA PÚBLICA: Todos pueden leer reviews sin autenticación
+      allow read: if true;
+      // Solo el autor puede crear/editar su review
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.fromUserId;
+      allow update: if request.auth != null && request.auth.uid == resource.data.fromUserId;
+      // Solo admin o el autor pueden eliminar
+      allow delete: if request.auth != null && request.auth.uid == resource.data.fromUserId;
+    }
+  }
+} 
