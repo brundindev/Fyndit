@@ -68,7 +68,9 @@ const isFormValid = computed(() => {
     form.value.description.trim() !== '' &&
     form.value.price > 0 &&
     form.value.category !== '' &&
-    form.value.location.city.trim() !== '' &&
+    form.value.location.city?.trim() !== '' &&
+    form.value.location.state?.trim() !== '' &&
+    form.value.location.country?.trim() !== '' &&
     imageFiles.value.length > 0
   )
 })
@@ -360,20 +362,57 @@ watch(
                 </select>
               </div>
 
-              <div>
-                <label for="location" class="block text-sm font-medium text-gray-700 mb-2">
+              <!-- Ubicación -->
+              <div class="space-y-4">
+                <label class="block text-sm font-medium text-gray-700">
                   <MapPin class="w-4 h-4 inline mr-1" />
                   Ubicación <span class="text-red-500">*</span>
                 </label>
-                <input
-                  id="location"
-                  v-model="form.location"
-                  type="text"
-                  required
-                  class="input-field w-full"
-                  placeholder="ej: Madrid, España"
-                  :disabled="loading"
-                />
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <input
+                      v-model="form.location.city"
+                      type="text"
+                      required
+                      class="input-field w-full"
+                      placeholder="Ciudad"
+                      :disabled="loading"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      v-model="form.location.state"
+                      type="text"
+                      required
+                      class="input-field w-full"
+                      placeholder="Estado/Provincia"
+                      :disabled="loading"
+                    />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <input
+                      v-model="form.location.country"
+                      type="text"
+                      required
+                      class="input-field w-full"
+                      placeholder="País"
+                      :disabled="loading"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      v-model="form.location.zipCode"
+                      type="text"
+                      class="input-field w-full"
+                      placeholder="Código postal (opcional)"
+                      :disabled="loading"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -16,6 +16,25 @@ const {
   getCategoryName,
   toggleFavorite,
 } = useProductDetail()
+
+// Función para formatear ubicación
+const formatLocation = (location: any) => {
+  if (!location) return 'Sin ubicación'
+
+  if (typeof location === 'string') {
+    return location
+  }
+
+  if (typeof location === 'object') {
+    const parts = []
+    if (location.city) parts.push(location.city)
+    if (location.state) parts.push(location.state)
+    if (location.country) parts.push(location.country)
+    return parts.join(', ') || 'Sin ubicación'
+  }
+
+  return 'Sin ubicación'
+}
 </script>
 
 <template>
@@ -117,7 +136,7 @@ const {
               <div class="flex items-center space-x-4 text-sm text-gray-600">
                 <div class="flex items-center space-x-1">
                   <MapPin class="w-4 h-4" />
-                  <span>{{ product.location }}</span>
+                  <span>{{ formatLocation(product.location) }}</span>
                 </div>
                 <div class="flex items-center space-x-1">
                   <Clock class="w-4 h-4" />

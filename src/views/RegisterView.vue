@@ -69,7 +69,7 @@ const {
               required
               class="input-field mt-1"
               :disabled="loading"
-              placeholder="ej: Juan Pérez"
+              placeholder="ej: Brundin Dev"
             />
           </div>
 
@@ -90,7 +90,7 @@ const {
               :disabled="loading"
               @input="checkUsername"
               @blur="validateUsername"
-              placeholder="ej: juan_perez123"
+              placeholder="ej: brundindev"
             />
             <div v-if="checkingUsername" class="mt-1 text-sm text-blue-600">
               Verificando disponibilidad...
@@ -120,7 +120,7 @@ const {
               required
               class="input-field mt-1"
               :disabled="loading"
-              placeholder="ej: juan@ejemplo.com"
+              placeholder="ej: brundindev@fyndit.com"
             />
           </div>
 

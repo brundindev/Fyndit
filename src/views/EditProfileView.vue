@@ -216,7 +216,7 @@ onMounted(() => {
                 type="text"
                 required
                 class="input-field w-full"
-                placeholder="ej: Juan Pérez"
+                placeholder="ej: Brundin Dev"
                 :disabled="loading"
               />
             </div>
@@ -236,7 +236,7 @@ onMounted(() => {
                   'border-red-500': usernameError,
                   'border-green-500': usernameValid && form.username !== authStore.user?.username,
                 }"
-                placeholder="ej: juan_perez123"
+                placeholder="ej: brundindev"
                 :disabled="loading"
                 @blur="validateUsername"
               />

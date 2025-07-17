@@ -31,9 +31,13 @@ import { useFavoritesStore } from './stores/favorites'
 authStore.$subscribe((mutation, state) => {
   const favoritesStore = useFavoritesStore()
 
-  if (authStore.isAuthenticated && state.isInitialized) {
-    // Usuario autenticado: cargar favoritos
-    favoritesStore.loadFavorites()
+  if (authStore.isAuthenticated && authStore.user && state.isInitialized) {
+    // Usuario autenticado: cargar favoritos con un pequeño delay para asegurar sincronización
+    setTimeout(() => {
+      if (authStore.isAuthenticated && authStore.user) {
+        favoritesStore.loadFavorites()
+      }
+    }, 100)
   } else if (!authStore.isAuthenticated && state.isInitialized) {
     // Usuario desautenticado: limpiar favoritos
     favoritesStore.clearFavorites()

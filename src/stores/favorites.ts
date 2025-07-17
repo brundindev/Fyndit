@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore'
-import { db } from '@/firebase/config'
+import { db, auth } from '@/firebase/config'
 import { toggleProductFavorite } from '@/firebase/products'
 import { useAuthStore } from './auth'
 import type { Product } from '@/types/firebase'
@@ -26,7 +26,14 @@ export const useFavoritesStore = defineStore('favorites', () => {
   async function loadFavorites() {
     const authStore = useAuthStore()
 
-    if (!authStore.isAuthenticated) {
+    if (!authStore.isAuthenticated || !authStore.user) {
+      favoriteProductIds.value.clear()
+      favoriteProducts.value = []
+      return
+    }
+
+    // Verificación adicional del estado de autenticación de Firebase
+    if (!auth.currentUser) {
       favoriteProductIds.value.clear()
       favoriteProducts.value = []
       return
@@ -39,7 +46,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       // Obtener IDs de productos favoritos
       const favoritesQuery = query(
         collection(db, 'favorites'),
-        where('userId', '==', authStore.user!.uid),
+        where('userId', '==', authStore.user.uid),
       )
 
       const favoritesSnapshot = await getDocs(favoritesQuery)
@@ -56,7 +63,16 @@ export const useFavoritesStore = defineStore('favorites', () => {
       await loadFavoriteProducts()
     } catch (err) {
       console.error('Error loading favorites:', err)
-      error.value = err instanceof Error ? err.message : 'Error al cargar favoritos'
+
+      // Si es un error de permisos, simplemente limpiar favoritos en lugar de mostrar error
+      if (err instanceof Error && err.message.includes('permission') ||
+          err instanceof Error && err.message.includes('insufficient')) {
+        favoriteProductIds.value.clear()
+        favoriteProducts.value = []
+        error.value = null
+      } else {
+        error.value = err instanceof Error ? err.message : 'Error al cargar favoritos'
+      }
     } finally {
       loading.value = false
     }
