@@ -6,6 +6,7 @@ import { useProductDetail } from '@/composables/useProductDetail'
 const {
   isFavorite,
   product,
+  seller,
   relatedProducts,
   loading,
   error,
@@ -15,6 +16,9 @@ const {
   getStatusText,
   getCategoryName,
   toggleFavorite,
+  goToSellerProfile,
+  getSellerRating,
+  getSellerRatingCount,
 } = useProductDetail()
 
 // Función para formatear ubicación
@@ -157,30 +161,42 @@ const formatLocation = (
             <!-- Vendedor -->
             <div class="bg-white rounded-lg p-6 shadow-md">
               <h3 class="text-lg font-semibold mb-4">Vendedor</h3>
-              <div class="flex items-center justify-between">
+              <div v-if="seller" class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                   <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    <User class="w-6 h-6 text-gray-600" />
+                    <img
+                      v-if="seller.photoURL"
+                      :src="seller.photoURL"
+                      :alt="seller.displayName"
+                      class="w-12 h-12 rounded-full object-cover"
+                    />
+                    <User v-else class="w-6 h-6 text-gray-600" />
                   </div>
                   <div>
                     <div class="font-semibold text-gray-900">
-                      {{
-                        (product as any).seller?.name ||
-                        (product as any).sellerInfo?.displayName ||
-                        'Usuario'
-                      }}
+                      {{ seller.displayName || 'Usuario' }}
                     </div>
                     <div class="flex items-center space-x-1">
                       <Star class="w-4 h-4 text-yellow-400 fill-current" />
-                      <span class="text-sm text-gray-600">{{
-                        (product as any).seller?.rating ||
-                        (product as any).sellerInfo?.rating ||
-                        5.0
-                      }}</span>
+                      <span class="text-sm text-gray-600">
+                        {{ getSellerRating().toFixed(1) }} ({{ getSellerRatingCount() }} valoraciones)
+                      </span>
                     </div>
                   </div>
                 </div>
-                <button class="btn-secondary">Ver perfil</button>
+                <button @click="goToSellerProfile" class="btn-secondary">Ver perfil</button>
+              </div>
+              <div v-else class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center animate-pulse">
+                    <User class="w-6 h-6 text-gray-600" />
+                  </div>
+                  <div>
+                    <div class="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div class="h-3 bg-gray-200 rounded animate-pulse w-20"></div>
+                  </div>
+                </div>
+                <div class="h-8 bg-gray-200 rounded animate-pulse w-20"></div>
               </div>
             </div>
 
@@ -221,3 +237,4 @@ const formatLocation = (
     </div>
   </div>
 </template>
+

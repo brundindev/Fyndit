@@ -1,18 +1,24 @@
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { getProduct, searchProducts } from '@/firebase/products'
-import type { Product as FirebaseProduct } from '@/types/firebase'
+import { useRoute, useRouter } from 'vue-router'
+import { getProduct, searchProducts, getUserById } from '@/firebase/products'
+import { useFavoritesStore } from '@/stores/favorites'
+import type { Product as FirebaseProduct, User } from '@/types/firebase'
 
 export function useProductDetail() {
   const route = useRoute()
+  const router = useRouter()
+  const favoritesStore = useFavoritesStore()
   const productId = route.params.id as string
 
   // Estado reactivo
-  const isFavorite = ref(false)
   const loading = ref(false)
   const error = ref('')
   const product = ref<FirebaseProduct | null>(null)
+  const seller = ref<User | null>(null)
   const relatedProducts = ref<FirebaseProduct[]>([])
+
+  // Computed para favoritos
+  const isFavorite = ref(false)
 
   // Cargar producto desde Firebase
   const loadProduct = async () => {
@@ -24,6 +30,11 @@ export function useProductDetail() {
 
       if (result.success && result.data) {
         product.value = result.data
+        isFavorite.value = favoritesStore.isFavorite(productId)
+
+        // Cargar información del vendedor
+        await loadSeller(result.data.sellerId)
+
         // Cargar productos relacionados de la misma categoría
         await loadRelatedProducts(result.data.category)
       } else {
@@ -34,6 +45,18 @@ export function useProductDetail() {
       console.error('Error loading product:', err)
     } finally {
       loading.value = false
+    }
+  }
+
+  // Cargar información del vendedor
+  const loadSeller = async (sellerId: string) => {
+    try {
+      const result = await getUserById(sellerId)
+      if (result.success && result.data) {
+        seller.value = result.data
+      }
+    } catch (err) {
+      console.error('Error loading seller:', err)
     }
   }
 
@@ -110,9 +133,28 @@ export function useProductDetail() {
     return categories[slug as keyof typeof categories] || slug
   }
 
-  const toggleFavorite = () => {
-    isFavorite.value = !isFavorite.value
-    // Aquí se haría la llamada a la API
+  const toggleFavorite = async () => {
+    if (!product.value) return
+    await favoritesStore.toggleFavorite(product.value.id)
+    isFavorite.value = favoritesStore.isFavorite(product.value.id)
+  }
+
+  // Navegar al perfil del vendedor
+  const goToSellerProfile = () => {
+    if (seller.value) {
+      router.push(`/perfil/${seller.value.uid}`)
+    }
+  }
+
+  // Obtener el total de valoraciones del vendedor
+  const getSellerRating = () => {
+    if (!seller.value?.ratings?.length) return 0
+    return seller.value.ratings.reduce((sum: number, rating: any) => sum + rating.rating, 0) / seller.value.ratings.length
+  }
+
+  // Obtener número de valoraciones
+  const getSellerRatingCount = () => {
+    return seller.value?.ratings?.length || 0
   }
 
   onMounted(() => {
@@ -122,6 +164,7 @@ export function useProductDetail() {
   return {
     isFavorite,
     product,
+    seller,
     relatedProducts,
     loading,
     error,
@@ -131,6 +174,9 @@ export function useProductDetail() {
     getStatusText,
     getCategoryName,
     toggleFavorite,
+    goToSellerProfile,
+    getSellerRating,
+    getSellerRatingCount,
     loadProduct,
   }
 }

@@ -6,6 +6,7 @@ import {
   deleteDoc,
   getDoc,
   getDocs,
+  setDoc,
   query,
   where,
   orderBy,
@@ -488,8 +489,8 @@ export async function toggleProductFavorite(productId: string): Promise<Firebase
         message: 'Producto removido de favoritos',
       }
     } else {
-      // Agregar favorito
-      await addDoc(collection(db, 'favorites'), {
+      // Agregar favorito usando el mismo ID específico
+      await setDoc(favoriteRef, {
         userId: auth.currentUser.uid,
         productId,
         addedAt: serverTimestamp(),
