@@ -9,7 +9,7 @@ import {
   sendPasswordResetEmail,
   updatePassword,
   type AuthError,
-  type User as FirebaseUser
+  type User as FirebaseUser,
 } from 'firebase/auth'
 import {
   doc,
@@ -20,13 +20,17 @@ import {
   collection,
   query,
   where,
-  getDocs
+  getDocs,
 } from 'firebase/firestore'
 import { auth, db } from './config'
 import type { User, FirebaseResponse } from '@/types/firebase'
 
 // Proveedor de Google para login social
 const googleProvider = new GoogleAuthProvider()
+googleProvider.setCustomParameters({
+  prompt: 'select_account',
+  popup: 'center',
+})
 
 export interface LoginCredentials {
   emailOrUsername: string
@@ -49,21 +53,18 @@ export async function isUsernameAvailable(username: string): Promise<FirebaseRes
     if (normalizedUsername.length < 3) {
       return {
         success: false,
-        error: 'El username debe tener al menos 3 caracteres'
+        error: 'El username debe tener al menos 3 caracteres',
       }
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(normalizedUsername)) {
       return {
         success: false,
-        error: 'El username solo puede contener letras, números y guiones bajos'
+        error: 'El username solo puede contener letras, números y guiones bajos',
       }
     }
 
-    const usersQuery = query(
-      collection(db, 'users'),
-      where('username', '==', normalizedUsername)
-    )
+    const usersQuery = query(collection(db, 'users'), where('username', '==', normalizedUsername))
 
     const querySnapshot = await getDocs(usersQuery)
     const isAvailable = querySnapshot.empty
@@ -71,13 +72,13 @@ export async function isUsernameAvailable(username: string): Promise<FirebaseRes
     return {
       success: true,
       data: isAvailable,
-      message: isAvailable ? 'Username disponible' : 'Username ya está en uso'
+      message: isAvailable ? 'Username disponible' : 'Username ya está en uso',
     }
   } catch (error: unknown) {
     console.error('Error checking username availability:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al verificar username'
+      error: error instanceof Error ? error.message : 'Error al verificar username',
     }
   }
 }
@@ -89,10 +90,7 @@ async function findUserByEmailOrUsername(emailOrUsername: string): Promise<Fireb
 
     // Primero intentar buscar por email
     if (identifier.includes('@')) {
-      const usersQuery = query(
-        collection(db, 'users'),
-        where('email', '==', identifier)
-      )
+      const usersQuery = query(collection(db, 'users'), where('email', '==', identifier))
       const querySnapshot = await getDocs(usersQuery)
 
       if (!querySnapshot.empty) {
@@ -100,15 +98,12 @@ async function findUserByEmailOrUsername(emailOrUsername: string): Promise<Fireb
         const userData = { uid: userDoc.id, ...userDoc.data() } as User
         return {
           success: true,
-          data: userData
+          data: userData,
         }
       }
     } else {
       // Buscar por username
-      const usersQuery = query(
-        collection(db, 'users'),
-        where('username', '==', identifier)
-      )
+      const usersQuery = query(collection(db, 'users'), where('username', '==', identifier))
       const querySnapshot = await getDocs(usersQuery)
 
       if (!querySnapshot.empty) {
@@ -116,26 +111,29 @@ async function findUserByEmailOrUsername(emailOrUsername: string): Promise<Fireb
         const userData = { uid: userDoc.id, ...userDoc.data() } as User
         return {
           success: true,
-          data: userData
+          data: userData,
         }
       }
     }
 
     return {
       success: false,
-      error: 'Usuario no encontrado'
+      error: 'Usuario no encontrado',
     }
   } catch (error: unknown) {
     console.error('Error finding user:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al buscar usuario'
+      error: error instanceof Error ? error.message : 'Error al buscar usuario',
     }
   }
 }
 
 // Crear perfil de usuario en Firestore
-async function createUserProfile(firebaseUser: FirebaseUser, additionalData?: any): Promise<FirebaseResponse<User>> {
+async function createUserProfile(
+  firebaseUser: FirebaseUser,
+  additionalData?: { username?: string; displayName?: string },
+): Promise<FirebaseResponse<User>> {
   try {
     const userRef = doc(db, 'users', firebaseUser.uid)
     const userDoc = await getDoc(userRef)
@@ -147,22 +145,31 @@ async function createUserProfile(firebaseUser: FirebaseUser, additionalData?: an
         if (!usernameCheck.success || !usernameCheck.data) {
           return {
             success: false,
-            error: usernameCheck.error || 'Username no disponible'
+            error: usernameCheck.error || 'Username no disponible',
           }
         }
       }
 
-      const userData: Omit<User, 'uid'> = {
+      const baseUserData = {
         email: firebaseUser.email!,
-        username: additionalData?.username?.toLowerCase().trim() || firebaseUser.email!.split('@')[0],
+        username:
+          additionalData?.username?.toLowerCase().trim() || firebaseUser.email!.split('@')[0],
         displayName: additionalData?.displayName || firebaseUser.displayName || '',
-        photoURL: firebaseUser.photoURL || undefined,
-        phoneNumber: firebaseUser.phoneNumber || undefined,
         favoriteProducts: [],
-        createdAt: serverTimestamp() as any,
-        updatedAt: serverTimestamp() as any,
-        lastLoginAt: serverTimestamp() as any,
-        isActive: true
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp(),
+        isActive: true,
+      }
+
+      // Añadir campos opcionales solo si tienen valor
+      const userData: Record<string, unknown> = { ...baseUserData }
+      if (firebaseUser.photoURL) {
+        userData.photoURL = firebaseUser.photoURL
+      }
+
+      if (firebaseUser.phoneNumber) {
+        userData.phoneNumber = firebaseUser.phoneNumber
       }
 
       await setDoc(userRef, userData)
@@ -170,27 +177,27 @@ async function createUserProfile(firebaseUser: FirebaseUser, additionalData?: an
       return {
         success: true,
         data: { uid: firebaseUser.uid, ...userData } as User,
-        message: 'Perfil de usuario creado exitosamente'
+        message: 'Perfil de usuario creado exitosamente',
       }
     }
 
     // Actualizar última conexión
     await updateDoc(userRef, {
       lastLoginAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     })
 
     const userData = { uid: firebaseUser.uid, ...userDoc.data() } as User
     return {
       success: true,
       data: userData,
-      message: 'Usuario autenticado exitosamente'
+      message: 'Usuario autenticado exitosamente',
     }
   } catch (error: unknown) {
     console.error('Error creating user profile:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al crear perfil de usuario'
+      error: error instanceof Error ? error.message : 'Error al crear perfil de usuario',
     }
   }
 }
@@ -203,7 +210,7 @@ export async function registerWithEmail(data: RegisterData): Promise<FirebaseRes
     if (!usernameCheck.success || !usernameCheck.data) {
       return {
         success: false,
-        error: usernameCheck.error || 'Username no disponible'
+        error: usernameCheck.error || 'Username no disponible',
       }
     }
 
@@ -211,7 +218,7 @@ export async function registerWithEmail(data: RegisterData): Promise<FirebaseRes
 
     // Actualizar perfil de Firebase Auth
     await updateProfile(user, {
-      displayName: data.displayName
+      displayName: data.displayName,
     })
 
     // Crear perfil en Firestore
@@ -220,13 +227,15 @@ export async function registerWithEmail(data: RegisterData): Promise<FirebaseRes
     console.error('Error registering user:', error)
     return {
       success: false,
-      error: getAuthErrorMessage(error as AuthError)
+      error: getAuthErrorMessage(error as AuthError),
     }
   }
 }
 
 // Login con email/username y contraseña
-export async function loginWithEmailOrUsername(credentials: LoginCredentials): Promise<FirebaseResponse<User>> {
+export async function loginWithEmailOrUsername(
+  credentials: LoginCredentials,
+): Promise<FirebaseResponse<User>> {
   try {
     const identifier = credentials.emailOrUsername.toLowerCase().trim()
     let email = identifier
@@ -237,7 +246,7 @@ export async function loginWithEmailOrUsername(credentials: LoginCredentials): P
       if (!userResult.success) {
         return {
           success: false,
-          error: 'Usuario no encontrado'
+          error: 'Usuario no encontrado',
         }
       }
       email = userResult.data!.email
@@ -249,16 +258,19 @@ export async function loginWithEmailOrUsername(credentials: LoginCredentials): P
     console.error('Error logging in:', error)
     return {
       success: false,
-      error: getAuthErrorMessage(error as AuthError)
+      error: getAuthErrorMessage(error as AuthError),
     }
   }
 }
 
 // Mantener función de login legacy para compatibilidad
-export async function loginWithEmail(credentials: { email: string; password: string }): Promise<FirebaseResponse<User>> {
+export async function loginWithEmail(credentials: {
+  email: string
+  password: string
+}): Promise<FirebaseResponse<User>> {
   return await loginWithEmailOrUsername({
     emailOrUsername: credentials.email,
-    password: credentials.password
+    password: credentials.password,
   })
 }
 
@@ -271,7 +283,7 @@ export async function loginWithGoogle(): Promise<FirebaseResponse<User>> {
     console.error('Error logging in with Google:', error)
     return {
       success: false,
-      error: getAuthErrorMessage(error as AuthError)
+      error: getAuthErrorMessage(error as AuthError),
     }
   }
 }
@@ -282,13 +294,13 @@ export async function logout(): Promise<FirebaseResponse<null>> {
     await signOut(auth)
     return {
       success: true,
-      message: 'Sesión cerrada exitosamente'
+      message: 'Sesión cerrada exitosamente',
     }
   } catch (error: unknown) {
     console.error('Error logging out:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al cerrar sesión'
+      error: error instanceof Error ? error.message : 'Error al cerrar sesión',
     }
   }
 }
@@ -304,7 +316,7 @@ export async function resetPassword(emailOrUsername: string): Promise<FirebaseRe
       if (!userResult.success) {
         return {
           success: false,
-          error: 'Usuario no encontrado'
+          error: 'Usuario no encontrado',
         }
       }
       email = userResult.data!.email
@@ -313,13 +325,13 @@ export async function resetPassword(emailOrUsername: string): Promise<FirebaseRe
     await sendPasswordResetEmail(auth, email)
     return {
       success: true,
-      message: 'Email de restablecimiento enviado'
+      message: 'Email de restablecimiento enviado',
     }
   } catch (error: unknown) {
     console.error('Error sending password reset:', error)
     return {
       success: false,
-      error: getAuthErrorMessage(error as AuthError)
+      error: getAuthErrorMessage(error as AuthError),
     }
   }
 }
@@ -330,20 +342,20 @@ export async function changePassword(newPassword: string): Promise<FirebaseRespo
     if (!auth.currentUser) {
       return {
         success: false,
-        error: 'Usuario no autenticado'
+        error: 'Usuario no autenticado',
       }
     }
 
     await updatePassword(auth.currentUser, newPassword)
     return {
       success: true,
-      message: 'Contraseña actualizada exitosamente'
+      message: 'Contraseña actualizada exitosamente',
     }
   } catch (error: unknown) {
     console.error('Error updating password:', error)
     return {
       success: false,
-      error: getAuthErrorMessage(error as AuthError)
+      error: getAuthErrorMessage(error as AuthError),
     }
   }
 }
@@ -354,7 +366,7 @@ export async function getCurrentUserProfile(): Promise<FirebaseResponse<User>> {
     if (!auth.currentUser) {
       return {
         success: false,
-        error: 'Usuario no autenticado'
+        error: 'Usuario no autenticado',
       }
     }
 
@@ -364,20 +376,20 @@ export async function getCurrentUserProfile(): Promise<FirebaseResponse<User>> {
     if (!userDoc.exists()) {
       return {
         success: false,
-        error: 'Perfil de usuario no encontrado'
+        error: 'Perfil de usuario no encontrado',
       }
     }
 
     const userData = { uid: auth.currentUser.uid, ...userDoc.data() } as User
     return {
       success: true,
-      data: userData
+      data: userData,
     }
   } catch (error: unknown) {
     console.error('Error getting user profile:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al obtener perfil de usuario'
+      error: error instanceof Error ? error.message : 'Error al obtener perfil de usuario',
     }
   }
 }
@@ -388,19 +400,22 @@ export async function updateUserProfile(updates: Partial<User>): Promise<Firebas
     if (!auth.currentUser) {
       return {
         success: false,
-        error: 'Usuario no autenticado'
+        error: 'Usuario no autenticado',
       }
     }
 
     // Si se está actualizando el username, validar disponibilidad
     if (updates.username) {
       const currentProfile = await getCurrentUserProfile()
-      if (currentProfile.success && currentProfile.data!.username !== updates.username.toLowerCase().trim()) {
+      if (
+        currentProfile.success &&
+        currentProfile.data!.username !== updates.username.toLowerCase().trim()
+      ) {
         const usernameCheck = await isUsernameAvailable(updates.username)
         if (!usernameCheck.success || !usernameCheck.data) {
           return {
             success: false,
-            error: usernameCheck.error || 'Username no disponible'
+            error: usernameCheck.error || 'Username no disponible',
           }
         }
         updates.username = updates.username.toLowerCase().trim()
@@ -410,7 +425,7 @@ export async function updateUserProfile(updates: Partial<User>): Promise<Firebas
     const userRef = doc(db, 'users', auth.currentUser.uid)
     const updateData = {
       ...updates,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     }
 
     await updateDoc(userRef, updateData)
@@ -418,7 +433,7 @@ export async function updateUserProfile(updates: Partial<User>): Promise<Firebas
     // Si se actualiza displayName, también actualizar en Firebase Auth
     if (updates.displayName) {
       await updateProfile(auth.currentUser, {
-        displayName: updates.displayName
+        displayName: updates.displayName,
       })
     }
 
@@ -427,7 +442,7 @@ export async function updateUserProfile(updates: Partial<User>): Promise<Firebas
     console.error('Error updating user profile:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al actualizar perfil'
+      error: error instanceof Error ? error.message : 'Error al actualizar perfil',
     }
   }
 }
