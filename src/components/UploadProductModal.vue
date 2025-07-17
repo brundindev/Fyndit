@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { X, Upload, Camera, MapPin, DollarSign, Package, FileText, Tag } from 'lucide-vue-next'
-import { createProduct } from '@/firebase/products'
+import { createProduct, type CreateProductData } from '@/firebase/products'
 import { useAuthStore } from '@/stores/auth'
-import type { CreateProductData } from '@/types/firebase'
 
 interface Props {
   show: boolean
@@ -19,15 +18,20 @@ const emit = defineEmits<Emits>()
 const authStore = useAuthStore()
 
 // Estado del formulario
-const form = ref<CreateProductData>({
+const form = ref({
   title: '',
   description: '',
   price: 0,
-  category: '',
-  condition: 'bueno',
-  location: '',
-  images: [],
-  tags: [],
+  category: '' as any, // Temporal para permitir string vacío en UI
+  condition: 'bueno' as const,
+  location: {
+    city: '',
+    state: '',
+    country: '',
+    zipCode: '',
+  },
+  images: [] as File[],
+  tags: [] as string[],
 })
 
 const loading = ref(false)
@@ -64,7 +68,7 @@ const isFormValid = computed(() => {
     form.value.description.trim() !== '' &&
     form.value.price > 0 &&
     form.value.category !== '' &&
-    form.value.location.trim() !== '' &&
+    form.value.location.city.trim() !== '' &&
     imageFiles.value.length > 0
   )
 })
@@ -87,11 +91,16 @@ const resetForm = () => {
     title: '',
     description: '',
     price: 0,
-    category: '',
-    condition: 'bueno',
-    location: '',
-    images: [],
-    tags: [],
+    category: '' as any,
+    condition: 'bueno' as const,
+    location: {
+      city: '',
+      state: '',
+      country: '',
+      zipCode: '',
+    },
+    images: [] as File[],
+    tags: [] as string[],
   }
   imageFiles.value = []
   imagePreviews.value = []
@@ -132,14 +141,17 @@ const removeImage = (index: number) => {
 
 const addTag = () => {
   const tag = tagInput.value.trim().toLowerCase()
-  if (tag && !form.value.tags.includes(tag) && form.value.tags.length < 10) {
+  if (tag && !form.value.tags?.includes(tag) && (form.value.tags?.length || 0) < 10) {
+    if (!form.value.tags) form.value.tags = []
     form.value.tags.push(tag)
     tagInput.value = ''
   }
 }
 
 const removeTag = (index: number) => {
-  form.value.tags.splice(index, 1)
+  if (form.value.tags) {
+    form.value.tags.splice(index, 1)
+  }
 }
 
 const handleTagInput = (event: KeyboardEvent) => {
@@ -160,9 +172,17 @@ const handleSubmit = async () => {
   successMessage.value = ''
 
   try {
-    const productData = {
-      ...form.value,
+    // Convertir formulario al tipo CreateProductData
+    const productData: CreateProductData = {
+      title: form.value.title,
+      description: form.value.description,
+      price: form.value.price,
+      currency: 'EUR',
+      category: form.value.category as any, // Se valida que no esté vacío en isFormValid
+      condition: form.value.condition,
+      location: form.value.location,
       images: imageFiles.value,
+      tags: form.value.tags || [],
     }
 
     const result = await createProduct(productData)

@@ -76,7 +76,9 @@
           <div class="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
             <User class="w-4 h-4 text-gray-600" />
           </div>
-          <span class="text-sm text-gray-600">{{ product.sellerInfo?.displayName || 'Vendedor' }}</span>
+          <span class="text-sm text-gray-600">{{
+            product.sellerInfo?.displayName || 'Vendedor'
+          }}</span>
         </div>
 
         <!-- Rating del vendedor -->
@@ -119,7 +121,7 @@ const goToProduct = () => {
 }
 
 const toggleFavorite = () => {
-  favoritesStore.toggleFavorite(props.product)
+  favoritesStore.toggleFavorite(props.product.id)
 }
 
 const formatPrice = (price: number) => {
@@ -152,22 +154,22 @@ const formatTimeAgo = (timestamp: Timestamp | Date | string) => {
 
 const getStatusBadgeClass = (condition: string) => {
   const classes = {
-    'nuevo': 'bg-green-100 text-green-800',
+    nuevo: 'bg-green-100 text-green-800',
     'como-nuevo': 'bg-blue-100 text-blue-800',
-    'bueno': 'bg-yellow-100 text-yellow-800',
-    'aceptable': 'bg-orange-100 text-orange-800',
-    'para-reparar': 'bg-red-100 text-red-800'
+    bueno: 'bg-yellow-100 text-yellow-800',
+    aceptable: 'bg-orange-100 text-orange-800',
+    'para-reparar': 'bg-red-100 text-red-800',
   }
   return classes[condition as keyof typeof classes] || 'bg-gray-100 text-gray-800'
 }
 
 const getStatusText = (condition: string) => {
   const texts = {
-    'nuevo': 'Nuevo',
+    nuevo: 'Nuevo',
     'como-nuevo': 'Como nuevo',
-    'bueno': 'Bueno',
-    'aceptable': 'Aceptable',
-    'para-reparar': 'Para reparar'
+    bueno: 'Bueno',
+    aceptable: 'Aceptable',
+    'para-reparar': 'Para reparar',
   }
   return texts[condition as keyof typeof texts] || condition
 }
