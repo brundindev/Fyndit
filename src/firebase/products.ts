@@ -70,13 +70,12 @@ export async function createProduct(data: CreateProductData): Promise<FirebaseRe
     }
 
     // Crear producto en Firestore
-    const productData = {
+    const baseProductData = {
       title: data.title,
       description: data.description,
       price: data.price,
       currency: data.currency,
       category: data.category,
-      subcategory: data.subcategory,
       condition: data.condition,
       status: 'activo' as const,
       saleStatus: 'en-venta' as const,
@@ -88,6 +87,14 @@ export async function createProduct(data: CreateProductData): Promise<FirebaseRe
       updatedAt: serverTimestamp(),
       views: 0,
       favorites: 0,
+    }
+
+    // Filtrar campos undefined que Firestore no acepta
+    const productData: Record<string, unknown> = { ...baseProductData }
+
+    // Solo agregar subcategory si tiene valor
+    if (data.subcategory && data.subcategory.trim() !== '') {
+      productData.subcategory = data.subcategory
     }
 
     const docRef = await addDoc(collection(db, 'products'), productData)
