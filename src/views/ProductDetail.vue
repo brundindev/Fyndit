@@ -1,7 +1,15 @@
 <script setup lang="ts">
-import { MapPin, Clock, User, Star, MessageCircle, Heart, Share } from 'lucide-vue-next'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { MapPin, Clock, User, Star, MessageCircle, Heart, Share, Loader2 } from 'lucide-vue-next'
 import ProductCard from '@/components/ProductCard.vue'
 import { useProductDetail } from '@/composables/useProductDetail'
+import { useChatsStore } from '@/stores/chats'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const chatsStore = useChatsStore()
+const authStore = useAuthStore()
 
 const {
   isFavorite,
@@ -20,6 +28,47 @@ const {
   getSellerRating,
   getSellerRatingCount,
 } = useProductDetail()
+
+// Estado para el botón de contactar
+const contactingLoading = ref(false)
+
+// Función para contactar al vendedor
+const contactSeller = async () => {
+  if (!authStore.isAuthenticated) {
+    router.push({ name: 'login' })
+    return
+  }
+
+  if (!product.value || !seller.value) {
+    console.error('Product or seller not loaded')
+    return
+  }
+
+  // No permitir chat consigo mismo
+  if (authStore.user?.uid === seller.value.uid) {
+    alert('No puedes contactar contigo mismo')
+    return
+  }
+
+  contactingLoading.value = true
+
+  try {
+    const result = await chatsStore.startOrOpenChat(product.value.id, seller.value.uid)
+
+    if (result.success && result.chatId) {
+      // Navegar al chat
+      router.push({ name: 'ChatDetail', params: { chatId: result.chatId } })
+    } else {
+      console.error('Error starting chat:', result.error)
+      alert('Error al iniciar chat. Inténtalo de nuevo.')
+    }
+  } catch (error) {
+    console.error('Error starting chat:', error)
+    alert('Error al iniciar chat. Inténtalo de nuevo.')
+  } finally {
+    contactingLoading.value = false
+  }
+}
 
 // Función para formatear ubicación
 const formatLocation = (
@@ -179,7 +228,10 @@ const formatLocation = (
                     <div class="flex items-center space-x-1">
                       <Star class="w-4 h-4 text-yellow-400 fill-current" />
                       <span class="text-sm text-gray-600">
-                        {{ getSellerRating().toFixed(1) }} ({{ getSellerRatingCount() }} valoraciones)
+                        {{ getSellerRating().toFixed(1) }} ({{
+                          getSellerRatingCount()
+                        }}
+                        valoraciones)
                       </span>
                     </div>
                   </div>
@@ -188,7 +240,9 @@ const formatLocation = (
               </div>
               <div v-else class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
-                  <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center animate-pulse">
+                  <div
+                    class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center animate-pulse"
+                  >
                     <User class="w-6 h-6 text-gray-600" />
                   </div>
                   <div>
@@ -202,9 +256,14 @@ const formatLocation = (
 
             <!-- Acciones -->
             <div class="space-y-3">
-              <button class="btn-primary w-full py-4 text-lg">
-                <MessageCircle class="w-5 h-5 mr-2" />
-                Contactar vendedor
+              <button
+                @click="contactSeller"
+                :disabled="contactingLoading || !seller"
+                class="btn-primary w-full py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Loader2 v-if="contactingLoading" class="w-5 h-5 mr-2 animate-spin" />
+                <MessageCircle v-else class="w-5 h-5 mr-2" />
+                {{ contactingLoading ? 'Iniciando chat...' : 'Contactar vendedor' }}
               </button>
               <button
                 @click="toggleFavorite"
@@ -237,4 +296,3 @@ const formatLocation = (
     </div>
   </div>
 </template>
-

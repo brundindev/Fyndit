@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { User, Save, ArrowLeft, MapPin, Mail, Phone, FileText } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import ProfileImageUpload from '@/components/ProfileImageUpload.vue'
 import type { User as FirebaseUser } from '@/types/firebase'
 
 const router = useRouter()
@@ -127,6 +128,14 @@ const goBack = () => {
   router.push('/perfil')
 }
 
+const onPhotoUpdated = () => {
+  // La foto ya se actualizó en el store, solo mostramos mensaje de éxito
+  successMessage.value = 'Foto de perfil actualizada exitosamente'
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 3000)
+}
+
 const formatCreatedDate = () => {
   const timestamp = authStore.user?.createdAt
   if (!timestamp) return 'No disponible'
@@ -197,11 +206,13 @@ onMounted(() => {
           </div>
 
           <form @submit.prevent="handleSubmit" class="space-y-6">
-            <!-- Avatar placeholder -->
+            <!-- Avatar con subida de imagen -->
             <div class="flex justify-center mb-6">
-              <div class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center">
-                <User class="w-12 h-12 text-gray-600" />
-              </div>
+              <ProfileImageUpload
+                :current-photo-u-r-l="authStore.user?.photoURL"
+                size="lg"
+                @photo-updated="onPhotoUpdated"
+              />
             </div>
 
             <!-- Nombre completo -->

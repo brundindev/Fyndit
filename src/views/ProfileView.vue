@@ -142,9 +142,15 @@ onMounted(() => {
           >
             <!-- Avatar -->
             <div
-              class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0"
+              class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
             >
-              <User class="w-12 h-12 text-gray-600" />
+              <img
+                v-if="profileUser.photoURL"
+                :src="profileUser.photoURL"
+                :alt="profileUser.displayName"
+                class="w-24 h-24 rounded-full object-cover"
+              />
+              <User v-else class="w-12 h-12 text-gray-600" />
             </div>
 
             <!-- Información principal -->
@@ -314,9 +320,15 @@ onMounted(() => {
                   <div class="flex items-start justify-between mb-3">
                     <div class="flex items-center space-x-3">
                       <div
-                        class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center"
+                        class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden"
                       >
-                        <User class="w-6 h-6 text-gray-600" />
+                        <img
+                          v-if="profileUser.photoURL"
+                          :src="profileUser.photoURL"
+                          :alt="profileUser.displayName"
+                          class="w-10 h-10 rounded-full object-cover"
+                        />
+                        <User v-else class="w-6 h-6 text-gray-600" />
                       </div>
                       <div>
                         <div class="font-medium text-gray-900">Usuario</div>

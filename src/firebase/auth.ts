@@ -23,6 +23,7 @@ import {
   getDocs,
 } from 'firebase/firestore'
 import { auth, db } from './config'
+import { cloudinaryService } from '@/services/cloudinary'
 import type { User, FirebaseResponse } from '@/types/firebase'
 
 // Proveedor de Google para login social
@@ -477,6 +478,53 @@ export async function updateUserProfile(updates: Partial<User>): Promise<Firebas
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error al actualizar perfil',
+    }
+  }
+}
+
+// Actualizar foto de perfil
+export async function updateProfilePhoto(photoFile: File): Promise<FirebaseResponse<User>> {
+  try {
+    if (!auth.currentUser) {
+      return {
+        success: false,
+        error: 'Usuario no autenticado',
+      }
+    }
+
+    // Subir imagen a Cloudinary
+    const uploadResult = await cloudinaryService.uploadImage(
+      photoFile,
+      `fyndit/profiles/${auth.currentUser.uid}`,
+    )
+
+    if (!uploadResult.success) {
+      return {
+        success: false,
+        error: uploadResult.error || 'Error al subir imagen',
+      }
+    }
+
+    const photoURL = uploadResult.url!
+
+    // Actualizar perfil de Firebase Auth
+    await updateProfile(auth.currentUser, {
+      photoURL,
+    })
+
+    // Actualizar en Firestore
+    const userRef = doc(db, 'users', auth.currentUser.uid)
+    await updateDoc(userRef, {
+      photoURL,
+      updatedAt: serverTimestamp(),
+    })
+
+    return await getCurrentUserProfile()
+  } catch (error: unknown) {
+    console.error('Error updating profile photo:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al actualizar foto de perfil',
     }
   }
 }

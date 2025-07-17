@@ -8,6 +8,7 @@ import {
   logout,
   resetPassword,
   updateUserProfile,
+  updateProfilePhoto,
   onAuthStateChange,
   type LoginCredentials,
   type RegisterData,
@@ -29,7 +30,7 @@ export const useAuthStore = defineStore('auth', () => {
   )
 
   // Acciones
-    async function login(credentials: LoginCredentials) {
+  async function login(credentials: LoginCredentials) {
     loading.value = true
     error.value = null
 
@@ -160,6 +161,28 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updatePhoto(photoFile: File) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const result = await updateProfilePhoto(photoFile)
+
+      if (result.success) {
+        user.value = result.data!
+        return { success: true, message: 'Foto de perfil actualizada exitosamente' }
+      } else {
+        error.value = result.error!
+        return { success: false, error: result.error }
+      }
+    } catch (err: any) {
+      error.value = err.message || 'Error al actualizar foto de perfil'
+      return { success: false, error: error.value }
+    } finally {
+      loading.value = false
+    }
+  }
+
   // Inicializar el observador de autenticación
   function initializeAuth() {
     if (isInitialized.value) return
@@ -199,6 +222,7 @@ export const useAuthStore = defineStore('auth', () => {
     signOut,
     sendPasswordReset,
     updateProfile,
+    updatePhoto,
     initializeAuth,
     clearError,
     isOwner,

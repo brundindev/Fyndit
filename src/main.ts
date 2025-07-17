@@ -35,22 +35,27 @@ app.mount('#app')
 const authStore = useAuthStore()
 authStore.initializeAuth()
 
-// Opcional: Precargar favoritos cuando el usuario se autentique
+// Opcional: Precargar favoritos y chats cuando el usuario se autentique
 import { useFavoritesStore } from './stores/favorites'
+import { useChatsStore } from './stores/chats'
 
-// Escuchar cambios en el estado de autenticación para manejar favoritos
+// Escuchar cambios en el estado de autenticación para manejar favoritos y chats
 authStore.$subscribe((mutation, state) => {
   const favoritesStore = useFavoritesStore()
+  const chatsStore = useChatsStore()
 
   if (authStore.isAuthenticated && authStore.user && state.isInitialized) {
-    // Usuario autenticado: cargar favoritos con un pequeño delay para asegurar sincronización
+    // Usuario autenticado: cargar favoritos y chats con un pequeño delay para asegurar sincronización
     setTimeout(() => {
       if (authStore.isAuthenticated && authStore.user) {
         favoritesStore.loadFavorites()
+        chatsStore.loadChats()
+        chatsStore.subscribeToChatsUpdates()
       }
     }, 100)
   } else if (!authStore.isAuthenticated && state.isInitialized) {
-    // Usuario desautenticado: limpiar favoritos
+    // Usuario desautenticado: limpiar favoritos y chats
     favoritesStore.clearFavorites()
+    chatsStore.clearChats()
   }
 })

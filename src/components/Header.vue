@@ -64,15 +64,16 @@
           <!-- Mensajes -->
           <router-link
             v-if="authStore.isAuthenticated"
-            to="/mensajes"
+            to="/chats"
             class="relative p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+            title="Chats"
           >
             <MessageCircle class="w-5 h-5" />
             <span
-              v-if="messagesCount > 0"
-              class="absolute -top-1 -right-1 bg-primary-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+              v-if="chatsStore.totalUnreadMessages > 0"
+              class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold"
             >
-              {{ messagesCount }}
+              {{ chatsStore.totalUnreadMessages > 99 ? '99+' : chatsStore.totalUnreadMessages }}
             </span>
           </router-link>
 
@@ -88,8 +89,16 @@
               @click="toggleUserMenu"
               class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
             >
-              <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                <User class="w-5 h-5 text-gray-600" />
+              <div
+                class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden"
+              >
+                <img
+                  v-if="authStore.user?.photoURL"
+                  :src="authStore.user.photoURL"
+                  :alt="authStore.user.displayName"
+                  class="w-8 h-8 rounded-full object-cover"
+                />
+                <User v-else class="w-5 h-5 text-gray-600" />
               </div>
               <span class="hidden md:block text-sm font-medium text-gray-700">
                 {{ authStore.userDisplayName }}
@@ -171,18 +180,19 @@ import {
 } from 'lucide-vue-next'
 import { useFavoritesStore } from '@/stores/favorites'
 import { useAuthStore } from '@/stores/auth'
-import UploadProductModal from './UploadProductModal.vue'
+import { useChatsStore } from '@/stores/chats'
+import UploadProductModal from '@/components/UploadProductModal.vue'
 
 const router = useRouter()
 const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
+const chatsStore = useChatsStore()
 
 // Estado reactivo
 const searchQuery = ref('')
 const showUserMenu = ref(false)
 const showMobileSearch = ref(false)
 const showUploadModal = ref(false)
-const messagesCount = ref(2) // Ejemplo
 
 // Referencias
 const userMenuRef = ref<HTMLElement>()

@@ -472,12 +472,26 @@ export async function toggleProductFavorite(productId: string): Promise<Firebase
       }
     }
 
-    const favoriteRef = doc(db, 'favorites', `${auth.currentUser.uid}_${productId}`)
-    const favoriteDoc = await getDoc(favoriteRef)
+    console.log('Toggle favorite for product:', productId, 'by user:', auth.currentUser.uid)
+
+    const favoriteId = `${auth.currentUser.uid}_${productId}`
+    const favoriteRef = doc(db, 'favorites', favoriteId)
     const productRef = doc(db, 'products', productId)
+
+    // Verificar que el producto existe
+    const productDoc = await getDoc(productRef)
+    if (!productDoc.exists()) {
+      return {
+        success: false,
+        error: 'El producto no existe',
+      }
+    }
+
+    const favoriteDoc = await getDoc(favoriteRef)
 
     if (favoriteDoc.exists()) {
       // Remover favorito
+      console.log('Removing favorite:', favoriteId)
       await deleteDoc(favoriteRef)
       await updateDoc(productRef, {
         favorites: increment(-1),
@@ -490,11 +504,15 @@ export async function toggleProductFavorite(productId: string): Promise<Firebase
       }
     } else {
       // Agregar favorito usando el mismo ID específico
-      await setDoc(favoriteRef, {
+      console.log('Adding favorite:', favoriteId)
+      const favoriteData = {
         userId: auth.currentUser.uid,
         productId,
         addedAt: serverTimestamp(),
-      })
+      }
+
+      console.log('Favorite data:', favoriteData)
+      await setDoc(favoriteRef, favoriteData)
 
       await updateDoc(productRef, {
         favorites: increment(1),
