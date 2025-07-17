@@ -64,6 +64,16 @@ export async function isUsernameAvailable(username: string): Promise<FirebaseRes
       }
     }
 
+    // Si no hay usuario autenticado, asumir que está disponible
+    // La verificación real se hará al intentar crear el usuario
+    if (!auth.currentUser) {
+      return {
+        success: true,
+        data: true,
+        message: 'Username verificado durante registro',
+      }
+    }
+
     const usersQuery = query(collection(db, 'users'), where('username', '==', normalizedUsername))
 
     const querySnapshot = await getDocs(usersQuery)
@@ -76,6 +86,20 @@ export async function isUsernameAvailable(username: string): Promise<FirebaseRes
     }
   } catch (error: unknown) {
     console.error('Error checking username availability:', error)
+
+    // Si es un error de permisos y no hay usuario autenticado, asumir disponible
+    if (
+      error instanceof Error &&
+      (error.message.includes('permission') || error.message.includes('insufficient')) &&
+      !auth.currentUser
+    ) {
+      return {
+        success: true,
+        data: true,
+        message: 'Username se verificará durante el registro',
+      }
+    }
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error al verificar username',
@@ -423,8 +447,18 @@ export async function updateUserProfile(updates: Partial<User>): Promise<Firebas
     }
 
     const userRef = doc(db, 'users', auth.currentUser.uid)
+
+    // Filtrar campos undefined que Firestore no acepta
+    const filteredUpdates: Record<string, unknown> = {}
+    Object.keys(updates).forEach((key) => {
+      const value = updates[key as keyof typeof updates]
+      if (value !== undefined) {
+        filteredUpdates[key] = value
+      }
+    })
+
     const updateData = {
-      ...updates,
+      ...filteredUpdates,
       updatedAt: serverTimestamp(),
     }
 

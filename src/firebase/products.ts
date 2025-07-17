@@ -15,8 +15,8 @@ import {
   increment,
   QueryDocumentSnapshot,
 } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
-import { db, storage, auth } from './config'
+import { db, auth } from './config'
+import { cloudinaryService } from '@/services/cloudinary'
 import type {
   Product,
   ProductImage,
@@ -385,11 +385,12 @@ export async function deleteProduct(productId: string): Promise<FirebaseResponse
       }
     }
 
-    // Eliminar imágenes del storage
+    // Eliminar imágenes de Cloudinary
     for (const image of productData.images) {
       try {
-        const imageRef = ref(storage, image.url)
-        await deleteObject(imageRef)
+        // Extraer publicId de la URL de Cloudinary o usar el ID almacenado
+        const publicId = image.id
+        await cloudinaryService.deleteImage(publicId)
       } catch (error) {
         console.warn('Error deleting image:', error)
       }
@@ -411,7 +412,7 @@ export async function deleteProduct(productId: string): Promise<FirebaseResponse
   }
 }
 
-// Subir imágenes del producto
+// Subir imágenes del producto usando Cloudinary
 async function uploadProductImages(files: File[]): Promise<FirebaseResponse<ProductImage[]>> {
   try {
     if (!auth.currentUser) {
@@ -421,25 +422,24 @@ async function uploadProductImages(files: File[]): Promise<FirebaseResponse<Prod
       }
     }
 
-    const images: ProductImage[] = []
+    const uploadResult = await cloudinaryService.uploadMultipleImages(
+      files,
+      `fyndit/products/${auth.currentUser.uid}`,
+    )
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      const imageId = `${Date.now()}_${i}`
-      const imagePath = `products/${auth.currentUser.uid}/${imageId}`
-      const imageRef = ref(storage, imagePath)
-
-      // Subir archivo
-      await uploadBytes(imageRef, file)
-      const downloadURL = await getDownloadURL(imageRef)
-
-      images.push({
-        id: imageId,
-        url: downloadURL,
-        order: i,
-        alt: `Imagen ${i + 1}`,
-      })
+    if (!uploadResult.success) {
+      return {
+        success: false,
+        error: uploadResult.error || 'Error al subir imágenes',
+      }
     }
+
+    const images: ProductImage[] = uploadResult.results.map((result, index) => ({
+      id: result.publicId || `${Date.now()}_${index}`,
+      url: result.url!,
+      order: index,
+      alt: `Imagen ${index + 1}`,
+    }))
 
     return {
       success: true,

@@ -18,7 +18,9 @@ const {
 } = useProductDetail()
 
 // Función para formatear ubicación
-const formatLocation = (location: any) => {
+const formatLocation = (
+  location: string | { city?: string; state?: string; country?: string } | null | undefined,
+) => {
   if (!location) return 'Sin ubicación'
 
   if (typeof location === 'string') {

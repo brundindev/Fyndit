@@ -3,6 +3,7 @@ import './assets/main.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { MotionPlugin } from '@vueuse/motion'
+import { Cloudinary } from '@cloudinary/url-gen'
 
 import App from './App.vue'
 import router from './router'
@@ -13,9 +14,19 @@ import { useAuthStore } from './stores/auth'
 
 const app = createApp(App)
 
+// Configurar Cloudinary
+const cloudinary = new Cloudinary({
+  cloud: {
+    cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dvxe3ihxa',
+  },
+})
+
 app.use(createPinia())
 app.use(router)
 app.use(MotionPlugin)
+
+// Hacer Cloudinary disponible globalmente
+app.config.globalProperties.$cloudinary = cloudinary
 
 // Inicializar autenticación después de montar la app
 app.mount('#app')
