@@ -130,12 +130,20 @@ export async function getProduct(productId: string): Promise<FirebaseResponse<Pr
       }
     }
 
-    // Incrementar contador de vistas
-    await updateDoc(productRef, {
-      views: increment(1),
-    })
-
     const productData = { id: productDoc.id, ...productDoc.data() } as Product
+
+    // Intentar incrementar contador de vistas de forma opcional
+    // Si falla por permisos, no afectar la obtención del producto
+    try {
+      await updateDoc(productRef, {
+        views: increment(1),
+        updatedAt: serverTimestamp(),
+      })
+    } catch (viewsError) {
+      console.warn('Warning: Could not increment views for product:', productId, viewsError)
+      // No devolver error, ya que el producto se obtuvo correctamente
+    }
+
     return {
       success: true,
       data: productData,
@@ -492,18 +500,33 @@ export async function toggleProductFavorite(productId: string): Promise<Firebase
     if (favoriteDoc.exists()) {
       // Remover favorito
       console.log('Removing favorite:', favoriteId)
-      await deleteDoc(favoriteRef)
-      await updateDoc(productRef, {
-        favorites: increment(-1),
-      })
+      try {
+        await deleteDoc(favoriteRef)
 
-      return {
-        success: true,
-        data: false,
-        message: 'Producto removido de favoritos',
+        // Intentar actualizar contador en producto (opcional)
+        try {
+          await updateDoc(productRef, {
+            favorites: increment(-1),
+            updatedAt: serverTimestamp(),
+          })
+        } catch (counterError) {
+          console.warn('Warning: Could not decrement favorites counter for product:', productId, counterError)
+        }
+
+        return {
+          success: true,
+          data: false,
+          message: 'Producto removido de favoritos',
+        }
+      } catch (deleteError) {
+        console.error('Error deleting favorite:', deleteError)
+        return {
+          success: false,
+          error: 'Error al remover de favoritos',
+        }
       }
     } else {
-      // Agregar favorito usando el mismo ID específico
+      // Agregar favorito
       console.log('Adding favorite:', favoriteId)
       const favoriteData = {
         userId: auth.currentUser.uid,
@@ -511,17 +534,31 @@ export async function toggleProductFavorite(productId: string): Promise<Firebase
         addedAt: serverTimestamp(),
       }
 
-      console.log('Favorite data:', favoriteData)
-      await setDoc(favoriteRef, favoriteData)
+      try {
+        console.log('Favorite data:', favoriteData)
+        await setDoc(favoriteRef, favoriteData)
 
-      await updateDoc(productRef, {
-        favorites: increment(1),
-      })
+        // Intentar actualizar contador en producto (opcional)
+        try {
+          await updateDoc(productRef, {
+            favorites: increment(1),
+            updatedAt: serverTimestamp(),
+          })
+        } catch (counterError) {
+          console.warn('Warning: Could not increment favorites counter for product:', productId, counterError)
+        }
 
-      return {
-        success: true,
-        data: true,
-        message: 'Producto agregado a favoritos',
+        return {
+          success: true,
+          data: true,
+          message: 'Producto agregado a favoritos',
+        }
+      } catch (createError) {
+        console.error('Error creating favorite:', createError)
+        return {
+          success: false,
+          error: 'Error al agregar a favoritos',
+        }
       }
     }
   } catch (error: unknown) {

@@ -36,10 +36,7 @@ const goBack = () => {
   router.push({ name: 'ChatsView' })
 }
 
-const startNewChat = () => {
-  // Navegar a la página principal para explorar productos
-  router.push({ name: 'HomeView' })
-}
+// Función removida: startNewChat - solo se puede chatear desde productos
 
 const viewProduct = (productId: string) => {
   router.push({ name: 'ProductDetail', params: { id: productId } })
@@ -96,11 +93,7 @@ authStore.$subscribe(() => {
         class="w-full lg:w-1/3 xl:w-1/4 bg-white border-r border-gray-200"
         :class="{ 'hidden lg:block': !showChatList }"
       >
-        <ChatList
-          :selected-chat-id="selectedChatId || undefined"
-          @select-chat="selectChat"
-          @start-new-chat="startNewChat"
-        />
+        <ChatList :selected-chat-id="selectedChatId || undefined" @select-chat="selectChat" />
       </div>
 
       <!-- Ventana de chat -->
@@ -127,9 +120,9 @@ authStore.$subscribe(() => {
               Selecciona un chat para comenzar
             </h3>
             <p class="text-gray-600 mb-6 max-w-sm">
-              Elige una conversación de la lista o contacta a un vendedor desde un producto
+              Elige una conversación de la lista o ve a un producto para contactar a un vendedor
             </p>
-            <button @click="startNewChat" class="btn-primary">Explorar productos</button>
+            <router-link to="/" class="btn-primary">Explorar productos</router-link>
           </div>
         </div>
       </div>

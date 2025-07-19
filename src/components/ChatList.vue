@@ -17,7 +17,6 @@ const props = defineProps<Props>()
 // Emits
 const emit = defineEmits<{
   selectChat: [chatId: string]
-  startNewChat: []
 }>()
 
 // Estado local
@@ -108,12 +107,6 @@ chatsStore.$subscribe(() => {
             {{ chatsStore.totalUnreadMessages }}
           </span>
         </h2>
-        <button
-          @click="emit('startNewChat')"
-          class="text-primary-600 hover:text-primary-700 text-sm font-medium"
-        >
-          Nuevo chat
-        </button>
       </div>
 
       <!-- Barra de búsqueda -->
@@ -163,12 +156,9 @@ chatsStore.$subscribe(() => {
           {{
             searchQuery
               ? 'Intenta con otros términos de búsqueda'
-              : 'Contacta a vendedores para comenzar a chatear'
+              : 'Contacta a vendedores desde sus productos para comenzar a chatear'
           }}
         </p>
-        <button v-if="!searchQuery" @click="emit('startNewChat')" class="btn-primary">
-          Explorar productos
-        </button>
       </div>
 
       <!-- Lista de chats -->

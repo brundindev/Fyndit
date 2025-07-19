@@ -21,22 +21,27 @@ service cloud.firestore {
       // EXCEPTO: cualquier usuario autenticado puede actualizar contadores (views, favorites)
       allow update: if request.auth != null && 
         (request.auth.uid == resource.data.sellerId || 
-         // Permitir actualización solo de contadores
+         // Permitir actualización de solo contadores
          (request.resource.data.keys().hasOnly(['views']) ||
           request.resource.data.keys().hasOnly(['favorites']) ||
-          request.resource.data.keys().hasOnly(['views', 'favorites']) ||
           request.resource.data.keys().hasOnly(['views', 'updatedAt']) ||
-          request.resource.data.keys().hasOnly(['favorites', 'updatedAt'])));
+          request.resource.data.keys().hasOnly(['favorites', 'updatedAt']) ||
+          request.resource.data.keys().hasOnly(['views', 'favorites']) ||
+          request.resource.data.keys().hasOnly(['views', 'favorites', 'updatedAt'])));
       // ELIMINACIÓN: Solo el propietario puede eliminar sus productos
       allow delete: if request.auth != null && request.auth.uid == resource.data.sellerId;
     }
     
     // Reglas para favoritos
     match /favorites/{favoriteId} {
-      // Los usuarios pueden crear sus propios favoritos
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      // Los usuarios pueden crear favoritos (el ID debe empezar con su userId)
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId &&
+        favoriteId.split('_')[0] == request.auth.uid;
       // Los usuarios pueden leer, actualizar y eliminar sus propios favoritos
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read, update, delete: if request.auth != null && 
+        (request.auth.uid == resource.data.userId ||
+         favoriteId.split('_')[0] == request.auth.uid);
     }
     
     // Reglas para chats/mensajes
