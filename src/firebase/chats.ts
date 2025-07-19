@@ -416,30 +416,79 @@ export function subscribeToUserChats(callback: (chats: Chat[]) => void) {
   }
 
   const userId = auth.currentUser.uid
+  const allChats = new Map<string, Chat>()
 
-  const chatsQuery = query(
+  // Función para actualizar la lista de chats
+  const updateChats = () => {
+    const chatsArray = Array.from(allChats.values())
+    chatsArray.sort((a, b) => {
+      const aTime = a.updatedAt instanceof Timestamp ? a.updatedAt.toMillis() : 0
+      const bTime = b.updatedAt instanceof Timestamp ? b.updatedAt.toMillis() : 0
+      return bTime - aTime
+    })
+    callback(chatsArray)
+  }
+
+  // Consulta para chats donde el usuario es comprador
+  const buyerChatsQuery = query(
     collection(db, 'chats'),
+    where('buyerId', '==', userId),
     where('isActive', '==', true),
     orderBy('updatedAt', 'desc'),
   )
 
-  return onSnapshot(
-    chatsQuery,
+  // Consulta para chats donde el usuario es vendedor
+  const sellerChatsQuery = query(
+    collection(db, 'chats'),
+    where('sellerId', '==', userId),
+    where('isActive', '==', true),
+    orderBy('updatedAt', 'desc'),
+  )
+
+  // Suscribirse a ambas consultas
+  const unsubscribeBuyer = onSnapshot(
+    buyerChatsQuery,
     (snapshot) => {
-      const chats: Chat[] = []
-      snapshot.docs.forEach((doc) => {
-        const chatData = { id: doc.id, ...doc.data() } as Chat
-        // Solo incluir chats donde el usuario es participante
-        if (chatData.buyerId === userId || chatData.sellerId === userId) {
-          chats.push(chatData)
+      snapshot.docChanges().forEach((change) => {
+        const chatData = { id: change.doc.id, ...change.doc.data() } as Chat
+
+        if (change.type === 'added' || change.type === 'modified') {
+          allChats.set(chatData.id, chatData)
+        } else if (change.type === 'removed') {
+          allChats.delete(chatData.id)
         }
       })
-      callback(chats)
+      updateChats()
     },
     (error) => {
-      console.error('Error subscribing to chats:', error)
+      console.error('Error subscribing to buyer chats:', error)
     },
   )
+
+  const unsubscribeSeller = onSnapshot(
+    sellerChatsQuery,
+    (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        const chatData = { id: change.doc.id, ...change.doc.data() } as Chat
+
+        if (change.type === 'added' || change.type === 'modified') {
+          allChats.set(chatData.id, chatData)
+        } else if (change.type === 'removed') {
+          allChats.delete(chatData.id)
+        }
+      })
+      updateChats()
+    },
+    (error) => {
+      console.error('Error subscribing to seller chats:', error)
+    },
+  )
+
+  // Retornar función de limpieza que cancela ambas suscripciones
+  return () => {
+    unsubscribeBuyer()
+    unsubscribeSeller()
+  }
 }
 
 // Obtener conteo de mensajes no leídos por chat
