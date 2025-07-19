@@ -3,6 +3,18 @@ import Home from '@/views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior(to, from, savedPosition) {
+    // Si hay una posición guardada (navegación hacia atrás/adelante), usarla
+    if (savedPosition) {
+      return savedPosition
+    }
+    // Si es una navegación con hash (ancla), ir a esa sección
+    if (to.hash) {
+      return { el: to.hash, behavior: 'smooth' }
+    }
+    // En cualquier otro caso, ir al top de la página
+    return { top: 0, behavior: 'smooth' }
+  },
   routes: [
     {
       path: '/',

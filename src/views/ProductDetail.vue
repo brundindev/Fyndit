@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { MapPin, Clock, User, Star, MessageCircle, Heart, Share, Loader2 } from 'lucide-vue-next'
+import {
+  MapPin,
+  Clock,
+  User,
+  Star,
+  MessageCircle,
+  Heart,
+  Share,
+  Loader2,
+  Eye,
+} from 'lucide-vue-next'
 import ProductCard from '@/components/ProductCard.vue'
 import { useProductDetail } from '@/composables/useProductDetail'
 import { useChatsStore } from '@/stores/chats'
@@ -89,6 +99,17 @@ const formatLocation = (
   }
 
   return 'Sin ubicación'
+}
+
+// Función para formatear números grandes
+const formatNumber = (num: number) => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M'
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K'
+  }
+  return num.toString()
 }
 </script>
 
@@ -188,7 +209,7 @@ const formatLocation = (
                 </span>
               </div>
 
-              <div class="flex items-center space-x-4 text-sm text-gray-600">
+              <div class="flex items-center space-x-4 text-sm text-gray-600 mb-3">
                 <div class="flex items-center space-x-1">
                   <MapPin class="w-4 h-4" />
                   <span>{{ formatLocation(product.location) }}</span>
@@ -198,6 +219,32 @@ const formatLocation = (
                   <span>{{
                     formatTimeAgo((product as any).createdAt?.toDate?.() || product.createdAt)
                   }}</span>
+                </div>
+              </div>
+
+              <!-- Contadores de visitas y favoritos -->
+              <div class="flex items-center space-x-6 p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center space-x-2">
+                  <div class="p-2 bg-blue-100 rounded-full">
+                    <Eye class="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <div class="text-lg font-semibold text-gray-900">
+                      {{ formatNumber(product.views || 0) }}
+                    </div>
+                    <div class="text-sm text-gray-600">Vistas</div>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <div class="p-2 bg-red-100 rounded-full">
+                    <Heart class="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <div class="text-lg font-semibold text-gray-900">
+                      {{ formatNumber(product.favorites || 0) }}
+                    </div>
+                    <div class="text-sm text-gray-600">Favoritos</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -228,9 +275,7 @@ const formatLocation = (
                     <div class="flex items-center space-x-1">
                       <Star class="w-4 h-4 text-yellow-400 fill-current" />
                       <span class="text-sm text-gray-600">
-                        {{ getSellerRating().toFixed(1) }} ({{
-                          getSellerRatingCount()
-                        }}
+                        {{ getSellerRating().toFixed(1) }} ({{ getSellerRatingCount() }}
                         valoraciones)
                       </span>
                     </div>

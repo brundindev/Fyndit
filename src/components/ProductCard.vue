@@ -59,7 +59,7 @@
       </p>
 
       <!-- Información adicional -->
-      <div class="flex items-center justify-between text-sm text-gray-500">
+      <div class="flex items-center justify-between text-sm text-gray-500 mb-2">
         <div class="flex items-center space-x-1">
           <MapPin class="w-4 h-4" />
           <span>{{ product.location?.city || 'Sin ubicación' }}</span>
@@ -67,6 +67,20 @@
         <div class="flex items-center space-x-1">
           <Clock class="w-4 h-4" />
           <span>{{ formatTimeAgo(product.createdAt) }}</span>
+        </div>
+      </div>
+
+      <!-- Contadores de visitas y favoritos -->
+      <div class="flex items-center justify-between text-xs text-gray-500">
+        <div class="flex items-center space-x-3">
+          <div class="flex items-center space-x-1">
+            <Eye class="w-3.5 h-3.5" />
+            <span>{{ formatNumber(product.views || 0) }} vistas</span>
+          </div>
+          <div class="flex items-center space-x-1">
+            <Heart class="w-3.5 h-3.5" />
+            <span>{{ formatNumber(product.favorites || 0) }} favoritos</span>
+          </div>
         </div>
       </div>
 
@@ -99,7 +113,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Heart, MapPin, Clock, User, Star } from 'lucide-vue-next'
+import { Heart, MapPin, Clock, User, Star, Eye } from 'lucide-vue-next'
 import { Timestamp } from 'firebase/firestore'
 import { useFavoritesStore } from '@/stores/favorites'
 import type { Product } from '@/types/firebase'
@@ -172,6 +186,16 @@ const getStatusText = (condition: string) => {
     'para-reparar': 'Para reparar',
   }
   return texts[condition as keyof typeof texts] || condition
+}
+
+const formatNumber = (num: number) => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M'
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K'
+  }
+  return num.toString()
 }
 </script>
 

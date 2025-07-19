@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Heart, Trash2 } from 'lucide-vue-next'
 import { useFavoritesStore } from '@/stores/favorites'
 import ProductCard from '@/components/ProductCard.vue'
 
 const favoritesStore = useFavoritesStore()
 const showConfirmModal = ref(false)
+
+// Cargar favoritos cuando se monta la vista
+onMounted(async () => {
+  await favoritesStore.loadFavorites()
+})
 
 const confirmClearFavorites = () => {
   showConfirmModal.value = true

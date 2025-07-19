@@ -129,6 +129,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
         if (result.data) {
           // Producto agregado a favoritos
           favoriteProductIds.value.add(productId)
+          // Recargar productos para obtener la información completa
+          await loadFavoriteProducts()
         } else {
           // Producto removido de favoritos
           favoriteProductIds.value.delete(productId)
