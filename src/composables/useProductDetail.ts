@@ -2,12 +2,14 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getProduct, searchProducts, getUserById } from '@/firebase/products'
 import { useFavoritesStore } from '@/stores/favorites'
-import type { Product as FirebaseProduct, User } from '@/types/firebase'
+import { useProductsStore } from '@/stores/products'
+import type { Product as FirebaseProduct, User, ProductCategory } from '@/types/firebase'
 
 export function useProductDetail() {
   const route = useRoute()
   const router = useRouter()
   const favoritesStore = useFavoritesStore()
+  const productsStore = useProductsStore()
   const productId = route.params.id as string
 
   // Estado reactivo
@@ -31,6 +33,9 @@ export function useProductDetail() {
       if (result.success && result.data) {
         product.value = result.data
         isFavorite.value = favoritesStore.isFavorite(productId)
+
+        // Guardar producto en el store con las vistas incrementadas
+        productsStore.setProduct(result.data)
 
         // Cargar información del vendedor
         await loadSeller(result.data.sellerId)
@@ -65,7 +70,7 @@ export function useProductDetail() {
     try {
       const result = await searchProducts(
         {
-          category: category as any,
+          category: category as ProductCategory,
           sortBy: 'recent',
         },
         4, // Solo 4 productos relacionados
@@ -73,7 +78,11 @@ export function useProductDetail() {
 
       if (result.success && result.data) {
         // Filtrar el producto actual de los relacionados
-        relatedProducts.value = result.data.items.filter((p) => p.id !== productId)
+        const filteredProducts = result.data.items.filter((p) => p.id !== productId)
+        relatedProducts.value = filteredProducts
+
+        // Guardar productos relacionados en el store
+        productsStore.setProducts(filteredProducts)
       }
     } catch (err) {
       console.error('Error loading related products:', err)
@@ -149,7 +158,12 @@ export function useProductDetail() {
   // Obtener el total de valoraciones del vendedor
   const getSellerRating = () => {
     if (!seller.value?.ratings?.length) return 0
-    return seller.value.ratings.reduce((sum: number, rating: any) => sum + rating.rating, 0) / seller.value.ratings.length
+    return (
+      seller.value.ratings.reduce(
+        (sum: number, rating: { rating: number }) => sum + rating.rating,
+        0,
+      ) / seller.value.ratings.length
+    )
   }
 
   // Obtener número de valoraciones

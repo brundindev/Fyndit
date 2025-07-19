@@ -3,9 +3,11 @@ import { useRouter } from 'vue-router'
 import { Smartphone, Car, Home, Shirt, Dumbbell, Gamepad2 } from 'lucide-vue-next'
 import type { Product as FirebaseProduct, SearchFilters, ProductCondition } from '@/types/firebase'
 import { searchProducts } from '@/firebase/products'
+import { useProductsStore } from '@/stores/products'
 
 export function useHome() {
   const router = useRouter()
+  const productsStore = useProductsStore()
 
   // Estado reactivo
   const heroSearchQuery = ref('')
@@ -77,6 +79,8 @@ export function useHome() {
 
       if (result.success && result.data) {
         products.value = result.data.items
+        // Guardar productos en el store para contadores reactivos
+        productsStore.setProducts(result.data.items)
       } else {
         error.value = result.error || 'Error al cargar productos'
       }
@@ -92,8 +96,8 @@ export function useHome() {
   const loading = ref(false)
   const error = ref('')
 
-  // Los productos ya vienen filtrados desde Firebase, solo devolvemos la referencia
-  const filteredProducts = computed(() => products.value)
+  // Los productos con contadores actualizados desde el store
+  const filteredProducts = computed(() => productsStore.getUpdatedProducts(products.value))
 
   const totalPages = computed(() => Math.ceil(filteredProducts.value.length / itemsPerPage))
 

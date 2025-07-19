@@ -75,11 +75,11 @@
         <div class="flex items-center space-x-3">
           <div class="flex items-center space-x-1">
             <Eye class="w-3.5 h-3.5" />
-            <span>{{ formatNumber(product.views || 0) }} vistas</span>
+            <span>{{ formatNumber(currentProduct.views || 0) }} vistas</span>
           </div>
           <div class="flex items-center space-x-1">
             <Heart class="w-3.5 h-3.5" />
-            <span>{{ formatNumber(product.favorites || 0) }} favoritos</span>
+            <span>{{ formatNumber(currentProduct.favorites || 0) }} favoritos</span>
           </div>
         </div>
       </div>
@@ -111,11 +111,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Heart, MapPin, Clock, User, Star, Eye } from 'lucide-vue-next'
 import { Timestamp } from 'firebase/firestore'
 import { useFavoritesStore } from '@/stores/favorites'
+import { useProductsStore } from '@/stores/products'
 import type { Product } from '@/types/firebase'
 
 interface Props {
@@ -125,9 +126,20 @@ interface Props {
 const props = defineProps<Props>()
 const router = useRouter()
 const favoritesStore = useFavoritesStore()
+const productsStore = useProductsStore()
+
+// Producto actualizado desde el store (con contadores reactivos)
+const currentProduct = computed(() => {
+  return productsStore.getProduct(props.product.id) || props.product
+})
 
 // Estado reactivo del store
 const isFavorite = computed(() => favoritesStore.isFavorite(props.product.id))
+
+// Guardar producto en el store al montar
+onMounted(() => {
+  productsStore.setProduct(props.product)
+})
 
 // Métodos
 const goToProduct = () => {

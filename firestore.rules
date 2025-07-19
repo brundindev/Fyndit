@@ -18,16 +18,15 @@ service cloud.firestore {
       // ESCRITURA: Solo usuarios autenticados pueden crear productos
       allow create: if request.auth != null;
       // ACTUALIZACIÓN: Solo el propietario puede modificar los datos del producto
-      // EXCEPTO: cualquier usuario autenticado puede actualizar contadores (views, favorites)
-      allow update: if request.auth != null && 
-        (request.auth.uid == resource.data.sellerId || 
-         // Permitir actualización de solo contadores
+      // EXCEPTO: cualquier usuario (incluso sin autenticación) puede actualizar contadores
+      allow update: if (request.auth != null && request.auth.uid == resource.data.sellerId) ||
+         // Permitir actualización de contadores sin autenticación
          (request.resource.data.keys().hasOnly(['views']) ||
           request.resource.data.keys().hasOnly(['favorites']) ||
           request.resource.data.keys().hasOnly(['views', 'updatedAt']) ||
           request.resource.data.keys().hasOnly(['favorites', 'updatedAt']) ||
           request.resource.data.keys().hasOnly(['views', 'favorites']) ||
-          request.resource.data.keys().hasOnly(['views', 'favorites', 'updatedAt'])));
+          request.resource.data.keys().hasOnly(['views', 'favorites', 'updatedAt']));
       // ELIMINACIÓN: Solo el propietario puede eliminar sus productos
       allow delete: if request.auth != null && request.auth.uid == resource.data.sellerId;
     }

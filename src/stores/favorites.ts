@@ -4,6 +4,7 @@ import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firesto
 import { db, auth } from '@/firebase/config'
 import { toggleProductFavorite } from '@/firebase/products'
 import { useAuthStore } from './auth'
+import { useProductsStore } from './products'
 import type { Product } from '@/types/firebase'
 
 export const useFavoritesStore = defineStore('favorites', () => {
@@ -65,8 +66,10 @@ export const useFavoritesStore = defineStore('favorites', () => {
       console.error('Error loading favorites:', err)
 
       // Si es un error de permisos, simplemente limpiar favoritos en lugar de mostrar error
-      if (err instanceof Error && err.message.includes('permission') ||
-          err instanceof Error && err.message.includes('insufficient')) {
+      if (
+        (err instanceof Error && err.message.includes('permission')) ||
+        (err instanceof Error && err.message.includes('insufficient'))
+      ) {
         favoriteProductIds.value.clear()
         favoriteProducts.value = []
         error.value = null
@@ -113,6 +116,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   async function toggleFavorite(productId: string) {
     const authStore = useAuthStore()
+    const productsStore = useProductsStore()
 
     if (!authStore.isAuthenticated) {
       error.value = 'Debes iniciar sesión para usar favoritos'
@@ -129,11 +133,15 @@ export const useFavoritesStore = defineStore('favorites', () => {
         if (result.data) {
           // Producto agregado a favoritos
           favoriteProductIds.value.add(productId)
+          // Incrementar contador en el store de productos
+          productsStore.incrementProductFavorites(productId)
           // Recargar productos para obtener la información completa
           await loadFavoriteProducts()
         } else {
           // Producto removido de favoritos
           favoriteProductIds.value.delete(productId)
+          // Decrementar contador en el store de productos
+          productsStore.decrementProductFavorites(productId)
           // Remover de la lista de productos también
           favoriteProducts.value = favoriteProducts.value.filter(
             (product) => product.id !== productId,

@@ -2,10 +2,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Product, SearchFilters, ProductCondition, ProductCategory } from '@/types/firebase'
 import { searchProducts } from '@/firebase/products'
+import { useProductsStore } from '@/stores/products'
 
 export function useSearch() {
   const route = useRoute()
   const router = useRouter()
+  const productsStore = useProductsStore()
 
   // Estado reactivo
   const searchQuery = ref((route.query.q as string) || '')

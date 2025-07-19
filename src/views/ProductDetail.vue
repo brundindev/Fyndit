@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   MapPin,
@@ -16,10 +16,12 @@ import ProductCard from '@/components/ProductCard.vue'
 import { useProductDetail } from '@/composables/useProductDetail'
 import { useChatsStore } from '@/stores/chats'
 import { useAuthStore } from '@/stores/auth'
+import { useProductsStore } from '@/stores/products'
 
 const router = useRouter()
 const chatsStore = useChatsStore()
 const authStore = useAuthStore()
+const productsStore = useProductsStore()
 
 const {
   isFavorite,
@@ -38,6 +40,12 @@ const {
   getSellerRating,
   getSellerRatingCount,
 } = useProductDetail()
+
+// Producto con contadores actualizados
+const currentProduct = computed(() => {
+  if (!product.value) return null
+  return productsStore.getProduct(product.value.id) || product.value
+})
 
 // Estado para el botón de contactar
 const contactingLoading = ref(false)
@@ -230,7 +238,7 @@ const formatNumber = (num: number) => {
                   </div>
                   <div>
                     <div class="text-lg font-semibold text-gray-900">
-                      {{ formatNumber(product.views || 0) }}
+                      {{ formatNumber(currentProduct?.views || 0) }}
                     </div>
                     <div class="text-sm text-gray-600">Vistas</div>
                   </div>
@@ -241,7 +249,7 @@ const formatNumber = (num: number) => {
                   </div>
                   <div>
                     <div class="text-lg font-semibold text-gray-900">
-                      {{ formatNumber(product.favorites || 0) }}
+                      {{ formatNumber(currentProduct?.favorites || 0) }}
                     </div>
                     <div class="text-sm text-gray-600">Favoritos</div>
                   </div>
